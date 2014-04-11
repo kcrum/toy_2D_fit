@@ -3,6 +3,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 import scipy.stats as st
 
+# Both of the PDFs below have nearly identical functionality and could therefore 
+# inherit from an intermediate parent class. If you add any more PDFs that have 
+# the same forms as those here, you should consider adding a base class between
+# the final physics PDFs and their (grand)parent class "rv_continuous."
+
 # You can make your own PDF by inheriting from rv_continuous in scipy.stats.
 # Since the parabolic PDF I'm defining here isn't sensible as a PDF outside of
 # [0,endpoint], I'm setting the inherited "a" to 0 and "b" to endpoint.
@@ -31,6 +36,22 @@ class ParabolicPDF(st.rv_continuous):
         self.endpoint = float(newendpoint)
         self.b = newendpoint
         self.normfactor = 6./(newendpoint**3)
+    # Return the fractional bin occupancy vector for a given binning
+    def binfractionvector(self, nbins, binrange):
+        if not isinstance(binrange, tuple) or len(binrange) != 2:
+            print 'binfractionvector expects binrange to be a 2-tuple. Exiting!'
+            sys.exit(1)
+        binwidth = float(binrange[1] - binrange[0]) / nbins
+        binfracvec = np.zeros(nbins)
+        prevcdf = 0.
+        for i in xrange(1,nbins+1): # This counts inclusively over {1,nbins}
+            uppercdf = self.cdf(binrange[0] + i*binwidth)
+            binfracvec[i-1] = uppercdf - prevcdf
+            prevcdf = uppercdf
+        # Simple check
+        if sum(binfracvec) != 1.0: print 'Warning: sum of binfracvec = %s' % \
+                sum(binfracvec)
+        return binfracvec
     # This is for debugging. It will plot a histogram of 100 draws from the pdf.
     def sampleplot(self,ndraws=100,nbins=10):
         hist, bins = np.histogram(self.rvs(size=ndraws), bins=nbins,
@@ -98,6 +119,22 @@ class TruncatedExponentialPDF(st.rv_continuous):
     def setlifetime(self,newlifetime):
         self.lifetime = newlifetime
         self.normfactor = 1./(newlifetime*(1 - np.exp(-self.maxT/newlifetime)))
+    # Return the fractional bin occupancy vector for a given binning
+    def binfractionvector(self, nbins, binrange):
+        if not isinstance(binrange, tuple) or len(binrange) != 2:
+            print 'binfractionvector expects binrange to be a 2-tuple. Exiting!'
+            sys.exit(1)
+        binwidth = float(binrange[1] - binrange[0]) / nbins
+        binfracvec = np.zeros(nbins)
+        prevcdf = 0.
+        for i in xrange(1,nbins+1): # This counts inclusively over {1,nbins}
+            uppercdf = self.cdf(binrange[0] + i*binwidth)
+            binfracvec[i-1] = uppercdf - prevcdf
+            prevcdf = uppercdf
+        # Simple check
+        if sum(binfracvec) != 1.0: print 'Warning: sum of binfracvec = %s' % \
+                sum(binfracvec)
+        return binfracvec
     # This is for debugging. It will plot a histogram of 100 draws from the pdf.
     def sampleplot(self,ndraws=100,nbins=10):        
         hist, bins = np.histogram(self.rvs(size=ndraws), bins=nbins,

@@ -61,6 +61,16 @@ class ParabolicPDF(st.rv_continuous):
         self.endpoint = float(newendpoint)
         self.b = newendpoint
         self.normfactor = 6./(newendpoint**3)
+    # Return the fractional bin occupancy vector for a given binning
+    def binfractionvector(self, nbins, binrange=(0,self.endpoint)):
+        binwidth = float(binrange[1] - binrange[0]) / nbins
+        binfracvec = []
+        prevcdf = 0
+        for i in xrange(1,nbins+1): # This counts inclusively over {1,nbins}
+            uppercdf = self.cdf(binrange[0] + i*binwidth)
+            binfracvec.append(uppercdf - prevcdf)
+            prevcdf = uppercdf
+
     # This is for debugging. It will plot a histogram of 100 draws from the pdf.
     def sampleplot(self,ndraws=100,nbins=10):
         hist, bins = np.histogram(self.rvs(size=ndraws), bins=nbins,
