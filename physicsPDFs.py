@@ -41,6 +41,7 @@ class ParabolicPDF(st.rv_continuous):
         plt.bar(bincenters, hist, width = barwidth)
         xvals = np.linspace(0,self.endpoint,100)
         plt.plot(xvals, histarea*self._pdf(xvals))
+        plt.xlabel("Energy [MeV]")
         plt.show()
     # This is the same as sampleplot, except now we're using the PyPlot histogram
     # interface instead of the numpy histogram passed to a bar graph.
@@ -54,6 +55,7 @@ class ParabolicPDF(st.rv_continuous):
         histarea = float(ndraws)*(float(self.endpoint)/nbins)
         xvals = np.linspace(0,self.endpoint,100)
         plt.plot(xvals, histarea*self._pdf(xvals))
+        plt.xlabel("Energy [MeV]")
         plt.show()
     # Yet another plot test.
     def sampleplot3(self,ndraws=100,nbins=10):
@@ -63,6 +65,7 @@ class ParabolicPDF(st.rv_continuous):
         histarea = float(ndraws)*(float(self.endpoint)/nbins)
         xvals = np.linspace(0,self.endpoint,100)
         ax.plot(xvals, histarea*self._pdf(xvals))
+        plt.xlabel("Energy [MeV]")
         plt.show()
 
 
@@ -105,6 +108,7 @@ class TruncatedExponentialPDF(st.rv_continuous):
         plt.bar(bincenters, hist, align='center', width = barwidth)
         xvals = np.linspace(0,self.maxT,100)
         plt.plot(xvals, histarea*self._pdf(xvals))
+        plt.xlabel(r"$\Delta T$")
         plt.show()
         
 
