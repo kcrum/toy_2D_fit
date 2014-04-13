@@ -26,11 +26,17 @@ import scipy.stats as st
 def mainloop(nevents1, nevents2, endpoint1=12.0, endpoint2=8.0, lifetime1=260,
              lifetime2=170, nEbins=4, nTbins=4):
     maxT = max(lifetime1, lifetime2)
-    pdfE1 = pdfs.ParabolicPDF(endpoint1)
-    pdfT1 = pdfs.TruncatedExponentialPDF(lifetime1, maxT)
-    pdfE2 = pdfs.ParabolicPDF(endpoint2)
-    pdfT2 = pdfs.TruncatedExponentialPDF(lifetime2, maxT)
-
+    maxE = max(endpoint1, endpoint2)
+    energypdfs = [pdfs.ParabolicPDF(endpoint1), pdfs.ParabolicPDF(endpoint2)]
+    timepdfs = [pdfs.TruncatedExponentialPDF(lifetime1, maxT),
+               pdfs.TruncatedExponentialPDF(lifetime2, maxT)]
+    energyfracs = [energypdfs[0].binfractionvector(nEbins, (0,maxE)),
+                   energypdfs[1].binfractionvector(nEbins, (0,maxE))]
+    timefracs = [timepdfs[0].binfractionvector(nTbins, (0,maxT)),
+                 timepdfs[1].binfractionvector(nTbins, (0,maxT))]
+    # Take outer product of vectors to get 2-D array. 
+    fracs2D = [np.outer(timefracs[0],energyfracs[0]), 
+               np.outer(timefracs[1],energyfracs[1])]
 
 if __name__ == '__main__':
     if len(sys.argv) < 3:

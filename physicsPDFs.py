@@ -35,7 +35,7 @@ class ParabolicPDF(st.rv_continuous):
     def setendpoint(self,newendpoint):
         self.endpoint = float(newendpoint)
         self.b = newendpoint
-        self.normfactor = 6./(newendpoint**3)
+        self.normfactor = 6./(self.endpoint**3)
     # Return the fractional bin occupancy vector for a given binning
     def binfractionvector(self, nbins, binrange):
         if not isinstance(binrange, tuple) or len(binrange) != 2:
@@ -102,9 +102,9 @@ class TruncatedExponentialPDF(st.rv_continuous):
         if lifetime <= 0: 
             print 'lifetime %s must be greater than 0. Exiting!' % lifetime
             sys.exit()
-        self.maxT = maxT
-        self.lifetime = lifetime
-        self.normfactor = 1./(lifetime*(1 - np.exp(-maxT/lifetime)))
+        self.maxT = float(maxT)
+        self.lifetime = float(lifetime)
+        self.normfactor = 1./(self.lifetime*(1-np.exp(-self.maxT/self.lifetime)))
         # Make sure to call the base/parent class's ctor, too.
         super(TruncatedExponentialPDF, self).__init__(a=0, b=maxT)
     # Overload default _pdf inherited from rv_continuous. 
@@ -112,13 +112,13 @@ class TruncatedExponentialPDF(st.rv_continuous):
         return self.normfactor*np.exp(-T/self.lifetime)
     # You can change maxT
     def setmaxT(self,newmaxT):
-        self.maxT = newmaxT
+        self.maxT = float(newmaxT)
         self.b = newmaxT
-        self.normfactor = 1./(self.lifetime*(1 - np.exp(-newmaxT/self.lifetime)))
+        self.normfactor = 1./(self.lifetime*(1-np.exp(-self.maxT/self.lifetime)))
     # You can change lifetime
     def setlifetime(self,newlifetime):
-        self.lifetime = newlifetime
-        self.normfactor = 1./(newlifetime*(1 - np.exp(-self.maxT/newlifetime)))
+        self.lifetime = float(newlifetime)
+        self.normfactor = 1./(self.lifetime*(1-np.exp(-self.maxT/self.lifetime)))
     # Return the fractional bin occupancy vector for a given binning
     def binfractionvector(self, nbins, binrange):
         if not isinstance(binrange, tuple) or len(binrange) != 2:
@@ -140,9 +140,10 @@ class TruncatedExponentialPDF(st.rv_continuous):
         hist, bins = np.histogram(self.rvs(size=ndraws), bins=nbins,
                                   range=(0,self.maxT))
         histarea = float(ndraws)*(float(self.maxT)/nbins)
-        barwidth = 0.9*(bins[1]-bins[0])
         bincenters = (bins[:-1] + bins[1:]) / 2
-        plt.bar(bincenters, hist, align='center', width = barwidth)
+        barwidth = 1.0*(bins[1]-bins[0])
+        plt.bar(bincenters, hist, align='center', alpha=0.8, width=barwidth, 
+                color='green')
         xvals = np.linspace(0,self.maxT,100)
         plt.plot(xvals, histarea*self._pdf(xvals))
         plt.xlabel(r"$\Delta T$")
