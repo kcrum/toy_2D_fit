@@ -23,36 +23,77 @@ import scipy.stats as st
 # 5) After loop, fit param. dists. with Gaussians and chi^2 curve
 #
 
-def mainloop(nevents0, nevents1, endpoint0 = 12.0, endpoint1 = 8.0, 
+def mainloop(nexpers, nevents0, nevents1, endpoint0 = 12.0, endpoint1 = 8.0, 
              lifetime0 = 260, lifetime1 = 170, nEbins = 4, nTbins = 4, 
              minevtsperbin = 20):
+    nevents = (nevents0, nevents1)
     maxT = max(lifetime0, lifetime1)
     maxE = max(endpoint0, endpoint1)
-    energypdfs = [pdfs.ParabolicPDF(endpoint0), pdfs.ParabolicPDF(endpoint1)]
-    timepdfs = [pdfs.TruncatedExponentialPDF(lifetime0, maxT),
+    # Get energy and time PDFs for our two 'isotopes.'
+    pdfsE = [pdfs.ParabolicPDF(endpoint0), pdfs.ParabolicPDF(endpoint1)]
+    pdfsT = [pdfs.TruncatedExponentialPDF(lifetime0, maxT),
                pdfs.TruncatedExponentialPDF(lifetime1, maxT)]
     # Get vectors of expected fractional bin content.
-    energyfracs = [energypdfs[0].binfractionvector(nEbins, (0,maxE)),
-                   energypdfs[1].binfractionvector(nEbins, (0,maxE))]
-    timefracs = [timepdfs[0].binfractionvector(nTbins, (0,maxT)),
-                 timepdfs[1].binfractionvector(nTbins, (0,maxT))]
-    # Take outer product of vectors to get 2-D array. Rows are time bins, columns
-    # are energy bins. 
-    fracs2D = [np.outer(timefracs[0],energyfracs[0]), 
-               np.outer(timefracs[1],energyfracs[1])]
-
+    fracsE = [pdfsE[0].binfractionvector(nEbins, (0,maxE)),
+              pdfsE[1].binfractionvector(nEbins, (0,maxE))]
+    fracsT = [pdfsT[0].binfractionvector(nTbins, (0,maxT)),
+                 pdfsT[1].binfractionvector(nTbins, (0,maxT))]
+    # Take outer product of vectors to get 2-D array. Rows are energy bins,
+    # columns are time bins, meaning all events in the same column occurred in
+    # the same deltaT window. 
+    fracs2D = [np.outer(fracsE[0],fracsT[0]), np.outer(fracsE[1],fracsT[1])]
     # Make sure no bin has fewer than 'minevtsperbin' events.
-    checkminbins(minevtsperbin, [nevents0,nevents1], energyfracs, timefracs, 
-                 fracs2D)
+    checkminbins(minevtsperbin, nevents, fracsE, fracsT, fracs2D)
 
-    
+    # Loop over fake experiments
+    for i in xrange(nexpers):
+        # Create arrays of fake events
+        dataE, dataT = throwexperiment(nevents, pdfsE, pdfsT)
+        # Bin events
+        histE = np.histogram(dataE, bins=nEbins, range=(0,maxE))
+        histT = np.histogram(dataT, bins=nTbins, range=(0,maxT))
+        # Match fracs2D and put have time vary by column and energy by row.
+        hist2D = np.histogram2d(dataE, dataT, bins=(nEbins,nTbins),
+                                range=((0., maxE), (0., maxT)))
+        # Fit two 1-D histograms        
+        fit1D(histE[0], histT[0], fracsE, fracsT)
+        print histE[0]
+        print histT[0]
+        # Fit one 2-d histogram
+        print hist2D[0]
+
+    print fracs2D[0]*nevents[0] + fracs2D[1]*nevents[1]
+def fit1D(binnedE, binnedT, fracsE, fracsT, PearsonErrs=True):
+    # Concatenate data and prediction vectors
+    datavec = np.append(binnedE,binnedT)
+    predvec = [np.append(fracsE[0],fracsT[0]), np.append(fracsE[1],fracsT[1])]
+    # Define inputs for minimizer
+    predfunc = lambda p: p[0]*predvec[0] + p[1]*predvec[1]
+    errfunc = lambda : 1
+    if PearsonErrs:
+        errfunc = lambda p: \
+                  sum([(datavec[i] - predfunc(p)[i]) / np.sqrt(predfunc(p)[i]) \
+                       for i in xrange(len(datavec))])
+    else: errfunc = lambda p: \
+                    sum([(datavec[i] - predfunc(p)[i]) / np.sqrt(datavec[i]) \
+                         for i in xrange(len(datavec))])
+
+# Create arrays of energy and deltaT points drawn from the energy and time PDFs
+# of our two 'isotopes'.
+def throwexperiment(nevents, pdfsE, pdfsT):
+    energyarr = np.array([])
+    timearr = np.array([])
+    for niso in xrange(len(nevents)):
+        energyarr = np.append(energyarr,pdfsE[niso].rvs(size=nevents[niso]))
+        timearr = np.append(timearr,pdfsT[niso].rvs(size=nevents[niso]))
+    return energyarr, timearr
 
 
 # This finds the bins with the fewest expected events in both the 1-D and 2-D 
 # cases.
-def checkminbins(minevtsperbin, nevents, energyfracs, timefracs, twoDfracs):
-    min1Dbin = min(np.min(nevents[0]*energyfracs[0] + nevents[1]*energyfracs[1]),
-                   np.min(nevents[0]*timefracs[0] + nevents[1]*timefracs[1]))    
+def checkminbins(minevtsperbin, nevents, fracsE, fracsT, twoDfracs):
+    min1Dbin = min(np.min(nevents[0]*fracsE[0] + nevents[1]*fracsE[1]),
+                   np.min(nevents[0]*fracsT[0] + nevents[1]*fracsT[1]))    
     min2Dbin = np.min(nevents[0]*twoDfracs[0] + nevents[1]*twoDfracs[1]) 
 
     if min1Dbin <= minevtsperbin:
