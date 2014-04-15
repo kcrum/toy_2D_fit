@@ -25,9 +25,12 @@ import scipy.stats as st
 #
 
 #########################################################################
-def mainloop(nexpers, nevents0, nevents1, endpoint0 = 12.0, endpoint1 = 8.0, 
-             lifetime0 = 260, lifetime1 = 170, nEbins = 4, nTbins = 4, 
-             minevtsperbin = 20, PearsonErrs = True):
+# This runs the main fake fit loop. If you'd like to see the output of just one
+# fake fit (performing the 1-D and 2-D versions), you can call mainloop from the
+# terminal like this: t2d.mainloop(1,1000,100,debug=True)
+def mainloop(nexpers, nevents0, nevents1, endpoint0=12.0, endpoint1=8.0, 
+             lifetime0=260, lifetime1=170, nEbins=4, nTbins=4, minevtsperbin=20,
+             PearsonErrs=True, debug=False):
     nevents = (nevents0, nevents1)
     maxT = max(lifetime0, lifetime1)
     maxE = max(endpoint0, endpoint1)
@@ -47,6 +50,7 @@ def mainloop(nexpers, nevents0, nevents1, endpoint0 = 12.0, endpoint1 = 8.0,
     # Make sure no bin has fewer than 'minevtsperbin' events.
     checkminbins(minevtsperbin, nevents, fracsE, fracsT, fracs2D)
 
+    covmats = np.zeros
     # Loop over fake experiments
     for i in xrange(nexpers):
         # Create arrays of fake events
@@ -54,29 +58,51 @@ def mainloop(nexpers, nevents0, nevents1, endpoint0 = 12.0, endpoint1 = 8.0,
         # Bin events
         histE = np.histogram(dataE, bins=nEbins, range=(0,maxE))
         histT = np.histogram(dataT, bins=nTbins, range=(0,maxT))
-        # Match fracs2D and put have time vary by column and energy by row.
+        # Bin 2-D data and match pattern of fracs2D by having time vary by column
+        # and energy by row.
         hist2D = np.histogram2d(dataE, dataT, bins=(nEbins,nTbins),
                                 range=((0., maxE), (0., maxT)))
         # Fit two 1-D histograms        
-        nfit, cov, chi2 = fit1D(histE[0], histT[0], fracsE, fracsT, nevents,
-                                PearsonErrs=PearsonErrs)
-        print '---------------------------------------------------------------'
-        print 'Best fits: %s' % nfit
-        print 'Cov. mat.: %s' % cov
-        print 'Chi^2: %s' % chi2
-        print '---------------------------------------------------------------'
-        
-        #print histE[0]
-        #print histT[0]
+        nfit1D, cov1D, chi1D, pval1D = fit1D(histE[0], histT[0], fracsE, fracsT,
+                                             nevents, PearsonErrs=PearsonErrs,
+                                             debug=debug)
         # Fit one 2-d histogram
-        #print hist2D[0]
+        nfit2D, cov2D, chi2D, pval2D = fit2D(hist2D[0],fracs2D, nevents,
+                                             PearsonErrs=PearsonErrs,
+                                             debug=debug)
 
-    print fracs2D[0]*nevents[0] + fracs2D[1]*nevents[1]
+    #print fracs2D[0]*nevents[0] + fracs2D[1]*nevents[1]
+    print 'Main loop finished!'
+
+#########################################################################
+# Find best fit 'isotope' rates when time and energy variables of fake data are
+# binned together in 2-D histogram.
+def fit2D(binneddata, fracs2D, nevents, PearsonErrs=True, debug=False):
+    datavec = binneddata.flatten()
+    predfunc = lambda p: p[0]*fracs2D[0].flatten() + p[1]*fracs2D[1].flatten()
+    func = lambda : 1
+    if PearsonErrs: func = lambda p: (datavec - predfunc(p))/np.sqrt(predfunc(p))
+    else: func = lambda p: (datavec - predfunc(p))/np.sqrt(datavec)
+    pfit, pcov, infodict, errmsg, success = sp.optimize.leastsq(func, nevents,
+                                                                full_output=1)
+    chi2 = sum([elem**2 for elem in infodict['fvec']])
+    dof = binneddata.size - 2
+    pval = st.chisqprob(chi2, dof)
+    if debug:
+        print '---------------------- 2-D Fit --------------------------------'
+        print 'Best fits: %s' % pfit
+        print 'Cov. mat.: %s' % pcov
+        print 'Chi^2: %s' % chi2
+        print 'd.o.f.: %s' % dof
+        print 'P-value: %s' % pval
+        print '---------------------------------------------------------------'
+    return pfit, pcov, chi2, pval
 
 #########################################################################
 # Find best fit 'isotope' rates for the energy and time variables binned
 # separately.
-def fit1D(binnedE, binnedT, fracsE, fracsT, nevents, PearsonErrs=True):
+def fit1D(binnedE, binnedT, fracsE, fracsT, nevents, PearsonErrs=True,
+          debug=False):
     # Concatenate data and prediction vectors
     datavec = np.append(binnedE,binnedT)
     predvec = [np.append(fracsE[0],fracsT[0]), np.append(fracsE[1],fracsT[1])]
@@ -90,7 +116,17 @@ def fit1D(binnedE, binnedT, fracsE, fracsT, nevents, PearsonErrs=True):
                                                                 full_output=1)
     chi2 = sum([elem**2 for elem in infodict['fvec']]) 
     #mychi2 = sum([(datavec[i] - predfunc(pfit)[i])**2./predfunc(pfit)[i] for i in xrange(len(datavec))])  ### This just equals 'chi2' calculated above
-    return pfit, pcov, chi2
+    dof = datavec.size - 2
+    pval = st.chisqprob(chi2, dof)
+    if debug:
+        print '---------------------- 1-D Fit --------------------------------'
+        print 'Best fits: %s' % pfit
+        print 'Cov. mat.: %s' % pcov
+        print 'Chi^2: %s' % chi2
+        print 'd.o.f.: %s' % dof
+        print 'P-value: %s' % pval
+        print '---------------------------------------------------------------'
+    return pfit, pcov, chi2, pval
 
 #########################################################################
 # Create arrays of energy and deltaT points drawn from the energy and time PDFs
