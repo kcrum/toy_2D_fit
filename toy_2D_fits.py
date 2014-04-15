@@ -1,6 +1,7 @@
 import physicsPDFs as pdfs
 import sys
 import numpy as np
+import scipy as sp
 import matplotlib.pyplot as plt
 import scipy.stats as st
         
@@ -23,9 +24,10 @@ import scipy.stats as st
 # 5) After loop, fit param. dists. with Gaussians and chi^2 curve
 #
 
+#########################################################################
 def mainloop(nexpers, nevents0, nevents1, endpoint0 = 12.0, endpoint1 = 8.0, 
              lifetime0 = 260, lifetime1 = 170, nEbins = 4, nTbins = 4, 
-             minevtsperbin = 20):
+             minevtsperbin = 20, PearsonErrs = True):
     nevents = (nevents0, nevents1)
     maxT = max(lifetime0, lifetime1)
     maxE = max(endpoint0, endpoint1)
@@ -56,28 +58,41 @@ def mainloop(nexpers, nevents0, nevents1, endpoint0 = 12.0, endpoint1 = 8.0,
         hist2D = np.histogram2d(dataE, dataT, bins=(nEbins,nTbins),
                                 range=((0., maxE), (0., maxT)))
         # Fit two 1-D histograms        
-        fit1D(histE[0], histT[0], fracsE, fracsT)
-        print histE[0]
-        print histT[0]
+        nfit, cov, chi2 = fit1D(histE[0], histT[0], fracsE, fracsT, nevents,
+                                PearsonErrs=PearsonErrs)
+        print '---------------------------------------------------------------'
+        print 'Best fits: %s' % nfit
+        print 'Cov. mat.: %s' % cov
+        print 'Chi^2: %s' % chi2
+        print '---------------------------------------------------------------'
+        
+        #print histE[0]
+        #print histT[0]
         # Fit one 2-d histogram
-        print hist2D[0]
+        #print hist2D[0]
 
     print fracs2D[0]*nevents[0] + fracs2D[1]*nevents[1]
-def fit1D(binnedE, binnedT, fracsE, fracsT, PearsonErrs=True):
+
+#########################################################################
+# Find best fit 'isotope' rates for the energy and time variables binned
+# separately.
+def fit1D(binnedE, binnedT, fracsE, fracsT, nevents, PearsonErrs=True):
     # Concatenate data and prediction vectors
     datavec = np.append(binnedE,binnedT)
     predvec = [np.append(fracsE[0],fracsT[0]), np.append(fracsE[1],fracsT[1])]
     # Define inputs for minimizer
     predfunc = lambda p: p[0]*predvec[0] + p[1]*predvec[1]
-    errfunc = lambda : 1
-    if PearsonErrs:
-        errfunc = lambda p: \
-                  sum([(datavec[i] - predfunc(p)[i]) / np.sqrt(predfunc(p)[i]) \
-                       for i in xrange(len(datavec))])
-    else: errfunc = lambda p: \
-                    sum([(datavec[i] - predfunc(p)[i]) / np.sqrt(datavec[i]) \
-                         for i in xrange(len(datavec))])
+    func = lambda : 1
+    if PearsonErrs: func = lambda p: (datavec - predfunc(p))/np.sqrt(predfunc(p))
+    else: func = lambda p: (datavec - predfunc(p))/np.sqrt(datavec)
 
+    pfit, pcov, infodict, errmsg, success = sp.optimize.leastsq(func, nevents,
+                                                                full_output=1)
+    chi2 = sum([elem**2 for elem in infodict['fvec']]) 
+    #mychi2 = sum([(datavec[i] - predfunc(pfit)[i])**2./predfunc(pfit)[i] for i in xrange(len(datavec))])  ### This just equals 'chi2' calculated above
+    return pfit, pcov, chi2
+
+#########################################################################
 # Create arrays of energy and deltaT points drawn from the energy and time PDFs
 # of our two 'isotopes'.
 def throwexperiment(nevents, pdfsE, pdfsT):
@@ -88,7 +103,7 @@ def throwexperiment(nevents, pdfsE, pdfsT):
         timearr = np.append(timearr,pdfsT[niso].rvs(size=nevents[niso]))
     return energyarr, timearr
 
-
+#########################################################################
 # This finds the bins with the fewest expected events in both the 1-D and 2-D 
 # cases.
 def checkminbins(minevtsperbin, nevents, fracsE, fracsT, twoDfracs):
@@ -103,7 +118,8 @@ def checkminbins(minevtsperbin, nevents, fracsE, fracsT, twoDfracs):
         print 'Warning: there is a bin in the 2-D fit with %s expected events. Either increase event rate or make binning coarser. Exiting.'
         sys.exit(1)
 
-
+#########################################################################
+#########################################################################
 if __name__ == '__main__':
     if len(sys.argv) < 3:
         print 'This expects an endpoint for the parabolic energy spectrum, a maximum time for the exponential deltaT distribution, and a lifetime for the deltaT distribution (all > 0) . Exiting.'
