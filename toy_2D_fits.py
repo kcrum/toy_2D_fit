@@ -29,8 +29,8 @@ import scipy.stats as st
 # fake fit (performing the 1-D and 2-D versions), you can call mainloop from the
 # terminal like this: t2d.mainloop(1,1000,100,debug=True)
 def mainloop(nexpers, nevents0, nevents1, endpoint0=12.0, endpoint1=8.0, 
-             lifetime0=260, lifetime1=170, nEbins=4, nTbins=4, minevtsperbin=20,
-             PearsonErrs=True, debug=False):
+             lifetime0=260, lifetime1=170, nEbins=4, nTbins=4, outfilename='',
+             minevtsperbin=20, PearsonErrs=True, debug=False):
     nevents = (nevents0, nevents1)
     maxT = max(lifetime0, lifetime1)
     maxE = max(endpoint0, endpoint1)
@@ -50,7 +50,14 @@ def mainloop(nexpers, nevents0, nevents1, endpoint0=12.0, endpoint1=8.0,
     # Make sure no bin has fewer than 'minevtsperbin' events.
     checkminbins(minevtsperbin, nevents, fracsE, fracsT, fracs2D)
 
-    covmats = np.zeros
+    # Create outfile with CSV header
+    if outfilename:
+        if os.path.exists(outfilename):
+            print 'Warning: overwriting %s.' % outfilename
+        outfile = open(outfilename, 'w')
+        outfile.write('n0_1D, n1_1D, var00_1D, var11_1D, var12_1D, chi_1D, pval_1D, n0_2D, n1_2D, var00_2D, var11_2D, var12_2D, chi_2D, pval_2D, n0_1DML, n1_1DML, fncmin_1DML, n0_2DML, n1_2DML, fncmin_2DML')
+
+    outdata = np.zeros((nexpers,20)) ### IS THIS THE RIGHT APPROACH???
     # Loop over fake experiments
     for i in xrange(nexpers):
         # Create arrays of fake events
@@ -61,22 +68,70 @@ def mainloop(nexpers, nevents0, nevents1, endpoint0=12.0, endpoint1=8.0,
         # Bin 2-D data and match pattern of fracs2D by having time vary by column
         # and energy by row.
         hist2D = np.histogram2d(dataE, dataT, bins=(nEbins,nTbins),
-                                range=((0., maxE), (0., maxT)))
-        # Fit two 1-D histograms        
+                                range=((0., maxE), (0., maxT)))        
+        # Chi-square min. fit of two 1-D histograms        
         nfit1D, cov1D, chi1D, pval1D = fit1D(histE[0], histT[0], fracsE, fracsT,
                                              nevents, PearsonErrs=PearsonErrs,
                                              debug=debug)
-        # Fit one 2-d histogram
+        data[i][0], data[i][1], data[i][2], data[i][3], data[i][4], data[i][5], data[i][6] = nfit1D[0], nfit1D[1], cov1D[0][0], cov1D[1][1], cov1D[1][0], chi1D, pval1D ### YOU LEFT OFF HERE. EITHER ADD OTHER VARIABLES BELOW TO 'data,' OR CONSIDER USING PANDAS DATAFRAME
+        # Max. likelihood fit of two 1-D histograms
+        nfit1Dml, fncmin1D = mlfit1D(histE[0], histT[0], fracsE, fracsT, nevents,
+                                     debug=debug)
+        # Chi-square min. fit of one 2-d histogram
         nfit2D, cov2D, chi2D, pval2D = fit2D(hist2D[0],fracs2D, nevents,
                                              PearsonErrs=PearsonErrs,
                                              debug=debug)
+        # Max. likelihood fit of one 2-D histogram
+        nfit2Dml, fncmin2D = mlfit2D(hist2D[0],fracs2D, nevents, debug=debug)
 
-    #print fracs2D[0]*nevents[0] + fracs2D[1]*nevents[1]
+
+    outfile.close()
     print 'Main loop finished!'
+
+
+#########################################################################
+# Find best fit 'isotope' rates for the energy and time variables binned
+# separately by maximizing likelihood.
+def mlfit1D(binnedE, binnedT, fracsE, fracsT, nevents, debug=False):
+    # Concatenate data and prediction vectors
+    datavec = np.append(binnedE,binnedT)
+    fracvec = [np.append(fracsE[0],fracsT[0]), np.append(fracsE[1],fracsT[1])]
+    fnc = lambda p: -np.sum(np.log(st.poisson.pmf(datavec, fracvec[0]*p[0]
+                                                  + fracvec[1]*p[1])))
+    pfit, fncmin, mingrad, invhess, ncalls, ngradcalls, wflag = \
+    sp.optimize.fmin_bfgs(fnc, nevents, full_output=1, disp=True)
+    if debug:
+        print '---------------------- 1-D ML Fit ------------------------------'
+        print 'Best fits: %s' % pfit
+        print 'Min. fnc. val: %s' % fncmin
+        print 'Num. fnc. calls: %s' % ncalls
+        print '---------------------------------------------------------------'
+    return pfit, fncmin
+
 
 #########################################################################
 # Find best fit 'isotope' rates when time and energy variables of fake data are
-# binned together in 2-D histogram.
+# binned together in 2-D histogram
+def mlfit2D(binneddata, fracs2D, nevents, debug=False):
+    # Concatenate data and prediction vectors
+    datavec = binneddata.flatten()
+    predfunc = lambda p: p[0]*fracs2D[0].flatten() + p[1]*fracs2D[1].flatten()
+
+    fnc = lambda p: -np.sum(np.log(st.poisson.pmf(datavec, predfunc(p))))
+    pfit, fncmin, mingrad, invhess, ncalls, ngradcalls, wflag = \
+    sp.optimize.fmin_bfgs(fnc, nevents, full_output=1, disp=True)
+    if debug:
+        print '---------------------- 2-D ML Fit ------------------------------'
+        print 'Best fits: %s' % pfit
+        print 'Min. fnc. val: %s' % fncmin
+        print 'Num. fnc. calls: %s' % ncalls
+        print '---------------------------------------------------------------'
+    return pfit, fncmin
+
+#########################################################################
+# Find best fit 'isotope' rates by minimizing a chi-square (treats Poisson errors
+# as Gaussian) when time and energy variables of fake data are binned together in
+# 2-D histogram 
 def fit2D(binneddata, fracs2D, nevents, PearsonErrs=True, debug=False):
     datavec = binneddata.flatten()
     predfunc = lambda p: p[0]*fracs2D[0].flatten() + p[1]*fracs2D[1].flatten()
@@ -100,7 +155,7 @@ def fit2D(binneddata, fracs2D, nevents, PearsonErrs=True, debug=False):
 
 #########################################################################
 # Find best fit 'isotope' rates for the energy and time variables binned
-# separately.
+# separately by minimizing a chi-square (treats Poisson errors as Gaussian).
 def fit1D(binnedE, binnedT, fracsE, fracsT, nevents, PearsonErrs=True,
           debug=False):
     # Concatenate data and prediction vectors
@@ -158,19 +213,18 @@ def checkminbins(minevtsperbin, nevents, fracsE, fracsT, twoDfracs):
 #########################################################################
 if __name__ == '__main__':
     if len(sys.argv) < 3:
-        print 'This expects an endpoint for the parabolic energy spectrum, a maximum time for the exponential deltaT distribution, and a lifetime for the deltaT distribution (all > 0) . Exiting.'
+        print 'This requires number of fake experiments, true number of isotope 0 events, and true number of isotope 1 events. Optionally you can pass a filename to save output. Exiting!'
         sys.exit(1)
 
-    endpoint = float(sys.argv[1])
-    maxT = float(sys.argv[2])
-    lifetime = float(sys.argv[3])
+    nexperiments = int(sys.argv[1])
+    nevents0 = int(sys.argv[2])
+    nevents1 = int(sys.argv[3])
 
-    if endpoint < 0 or maxT < 0 or lifetime < 0:
-        print 'All three parameters must be positive numbers. Exiting.'
-        sys.exit(1)
-    
-    EnergyPDF = pdfs.ParabolicPDF(endpoint)
-    DeltaTPDF = pdfs.TruncatedExponentialPDF(maxT, lifetime)
+    outfilename = ''
+    if len(sys.argv) == 5: outfilename = sys.argv[4]
 
-    EnergyPDF.sampleplot2()
-    DeltaTPDF.sampleplot()
+    mainloop(nexperiments, nevents0, nevents1, outfilename=outfilename, debug=True)
+
+    #mainloop(nexpers, nevents0, nevents1, endpoint0=12.0, endpoint1=8.0,
+    #         lifetime0=260, lifetime1=170, nEbins=4, nTbins=4, outfilename='',
+    #         minevtsperbin=20, PearsonErrs=True, debug=False):
