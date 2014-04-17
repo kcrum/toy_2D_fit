@@ -10,10 +10,10 @@ The fake data in the fits done here are pulled from energy and time distribution
 
 Fake data is generated and then fit by the "mainloop" function in toy_2D_fits.py. Four different fits are run to extract the normalization of the two isotopes:
 
--A least-squares fit to the 4 energy bins and 4 time bins, using the Pearson treatment for statistical errors.
--A least-squares fit to the combined 16 (4x4) energy and time bins, using the Pearson treatment for statistical errors.
--A maximum likelihood fit to the 4 energy bins and 4 time bins, using a Poisson pdf for each of the 8 bins.
--A maximum likelihood fit to the combined 16 (4x4) energy and time bins, using a Poisson pdf for each of the 16 bins.
+- A least-squares fit to the 4 energy bins and 4 time bins, using the Pearson treatment for statistical errors.
+- A least-squares fit to the combined 16 (4x4) energy and time bins, using the Pearson treatment for statistical errors.
+- A maximum likelihood fit to the 4 energy bins and 4 time bins, using a Poisson pdf for each of the 8 bins.
+- A maximum likelihood fit to the combined 16 (4x4) energy and time bins, using a Poisson pdf for each of the 16 bins.
 
 By default the endpoints are 12. and 8. (arb. units) for isotope0 and isotope1, respectively. The four energy bins span the range from 0 to 12. Isotope0 has a default lifetime of 260, while isotope1 has a default lifetime of 170 (arb. units). The time bins span 0 to 260. 
 
