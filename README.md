@@ -8,7 +8,7 @@ I want to test whether simultaneously fitting both of the 1-D distributions is u
 
 The fake data in the fits done here are pulled from energy and time distributions, much like if one were observing Li-9 or He-8 decays. The energy spectrum form is specified in physicsPDFs.py by the "ParabolicPDF" class, and it is a parabola of the form ~x*(x-endpoint), where the user specifies the endpoint. The time spectrum is an exponential from the "TruncatedExponentialPDF" class with user-specified lifetime, as well as a user-specified maximum time. We generate fake data pulling from energy and time distributions for two 'isotopes,' each with its own spectral endpoint and lifetime. 
 
-Fake data is generated and then fit by the "mainloop" function in toy_2D_fits.py. Four different fits are run to extract the normalization of the two isotopes:
+Fake data is generated and then fit by the "mainloop" function in toy_2D_fits.py. Four different fits are run to extract the normalization of the two isotopes in each fake experiment:
 
 - A least-squares fit to the 4 energy bins and 4 time bins, using the Pearson treatment for statistical errors.
 - A least-squares fit to the combined 16 (4x4) energy and time bins, using the Pearson treatment for statistical errors.
