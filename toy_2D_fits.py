@@ -1,10 +1,12 @@
 import physicsPDFs as pdfs
-import sys
+import sys, datetime, subprocess
+import os.path
 import numpy as np
 import scipy as sp
 import matplotlib.pyplot as plt
 import scipy.stats as st
-        
+import pandas as pd
+
 #
 # 1) Evaluate bin fraction vectors (for example see ../gaussPlusConstFit.py)
 #     1a?) How low can the population be in highest E, highest T bin (which is 
@@ -50,14 +52,10 @@ def mainloop(nexpers, nevents0, nevents1, endpoint0=12.0, endpoint1=8.0,
     # Make sure no bin has fewer than 'minevtsperbin' events.
     checkminbins(minevtsperbin, nevents, fracsE, fracsT, fracs2D)
 
-    # Create outfile with CSV header
-    if outfilename:
-        if os.path.exists(outfilename):
-            print 'Warning: overwriting %s.' % outfilename
-        outfile = open(outfilename, 'w')
-        outfile.write('n0_1D, n1_1D, var00_1D, var11_1D, var12_1D, chi_1D, pval_1D, n0_2D, n1_2D, var00_2D, var11_2D, var12_2D, chi_2D, pval_2D, n0_1DML, n1_1DML, fncmin_1DML, n0_2DML, n1_2DML, fncmin_2DML')
+    if outfilename and os.path.exists(outfilename):
+        print 'Warning: overwriting %s.' % outfilename
 
-    outdata = np.zeros((nexpers,20)) ### IS THIS THE RIGHT APPROACH???
+    data = pd.DataFrame(outdict(nexpers))
     # Loop over fake experiments
     for i in xrange(nexpers):
         # Create arrays of fake events
@@ -73,7 +71,6 @@ def mainloop(nexpers, nevents0, nevents1, endpoint0=12.0, endpoint1=8.0,
         nfit1D, cov1D, chi1D, pval1D = fit1D(histE[0], histT[0], fracsE, fracsT,
                                              nevents, PearsonErrs=PearsonErrs,
                                              debug=debug)
-        data[i][0], data[i][1], data[i][2], data[i][3], data[i][4], data[i][5], data[i][6] = nfit1D[0], nfit1D[1], cov1D[0][0], cov1D[1][1], cov1D[1][0], chi1D, pval1D ### YOU LEFT OFF HERE. EITHER ADD OTHER VARIABLES BELOW TO 'data,' OR CONSIDER USING PANDAS DATAFRAME
         # Max. likelihood fit of two 1-D histograms
         nfit1Dml, fncmin1D = mlfit1D(histE[0], histT[0], fracsE, fracsT, nevents,
                                      debug=debug)
@@ -83,11 +80,49 @@ def mainloop(nexpers, nevents0, nevents1, endpoint0=12.0, endpoint1=8.0,
                                              debug=debug)
         # Max. likelihood fit of one 2-D histogram
         nfit2Dml, fncmin2D = mlfit2D(hist2D[0],fracs2D, nevents, debug=debug)
+        # Fill outputs into dataframe
+        adddata(data, i, nfit1D, cov1D, chi1D, pval1D, nfit2D, cov2D, chi2D,
+                pval2D, nfit1Dml, fncmin1D, nfit2Dml, fncmin2D)
 
-
-    outfile.close()
+    if outfilename: data.to_csv(outfilename)
     print 'Main loop finished!'
 
+#########################################################################
+# This fills a dataframe built from the output of 'outdict()' with a given fake
+# experiment's outputs.
+def adddata(df, i, nfit1D, cov1D, chi1D, pval1D, nfit2D, cov2D, chi2D, pval2D,
+            nfit1DML, fncmin1D, nfit2DML, fncmin2D): 
+    # 1-D chi square outputs
+    df['n0_1D'][i], df['n1_1D'][i] = nfit1D[0], nfit1D[1]
+    df['var00_1D'][i], df['var01_1D'][i], df['var11_1D'][i] = cov1D[0][0],\
+                                                              cov1D[0][1],\
+                                                              cov1D[1][1]
+    df['chi_1D'][i], df['pval_1D'][i] = chi1D, pval1D
+    # 2-D chi square outputs
+    df['n0_2D'][i], df['n1_2D'][i] = nfit2D[0], nfit2D[1]
+    df['var00_2D'][i], df['var01_2D'][i], df['var11_2D'][i] = cov2D[0][0],\
+                                                              cov2D[0][1],\
+                                                              cov2D[1][1]
+    df['chi_2D'][i], df['pval_2D'][i] = chi2D, pval2D
+    # Max. likelihood outputs
+    df['n0_1DML'][i], df['n1_1DML'][i] = nfit1DML[0], nfit1DML[1]
+    df['n0_2DML'][i], df['n1_2DML'][i] = nfit2DML[0], nfit2DML[1]
+    df['fncmin_1DML'][i], df['fncmin_2DML'][i] = fncmin1D, fncmin2D
+
+#########################################################################
+# This creates a dict for outputting the data. Each value in the dict is an array
+# of length 'nexps.'
+def outdict(nexps):
+    return {'n0_1D': np.zeros(nexps), 'n1_1D': np.zeros(nexps),
+            'var00_1D': np.zeros(nexps), 'var01_1D': np.zeros(nexps),
+            'var11_1D': np.zeros(nexps), 'chi_1D': np.zeros(nexps),
+            'pval_1D': np.zeros(nexps), 'n0_2D': np.zeros(nexps),
+            'n1_2D': np.zeros(nexps), 'var00_2D': np.zeros(nexps),
+            'var01_2D': np.zeros(nexps), 'var11_2D': np.zeros(nexps),
+            'chi_2D': np.zeros(nexps), 'pval_2D': np.zeros(nexps),
+            'n0_1DML': np.zeros(nexps), 'n1_1DML': np.zeros(nexps),
+            'fncmin_1DML': np.zeros(nexps), 'n0_2DML': np.zeros(nexps),
+            'n1_2DML': np.zeros(nexps), 'fncmin_2DML': np.zeros(nexps)}
 
 #########################################################################
 # Find best fit 'isotope' rates for the energy and time variables binned
@@ -210,6 +245,17 @@ def checkminbins(minevtsperbin, nevents, fracsE, fracsT, twoDfracs):
         sys.exit(1)
 
 #########################################################################
+# This allows you to make easy calls to the terminal.
+def sh(arg):
+    return subprocess.call(arg, shell=True) # This the more modern version of
+# os.system(...). The program waits until this finishes before proceding. If you
+# don't pass 'shell=True', all whitespace-separated parts of the shell command
+# must be passed in like a list. This returns 'returncode'. You could also call:
+#     subprocess.Popen(arg, shell=True).wait()
+# but this can deadlock (see docs), and it doesn't return 'returncode'.
+
+    
+#########################################################################
 #########################################################################
 if __name__ == '__main__':
     if len(sys.argv) < 3:
@@ -222,8 +268,8 @@ if __name__ == '__main__':
 
     outfilename = ''
     if len(sys.argv) == 5: outfilename = sys.argv[4]
-
-    mainloop(nexperiments, nevents0, nevents1, outfilename=outfilename, debug=True)
+        
+    mainloop(nexperiments, nevents0, nevents1, outfilename=outfilename)
 
     #mainloop(nexpers, nevents0, nevents1, endpoint0=12.0, endpoint1=8.0,
     #         lifetime0=260, lifetime1=170, nEbins=4, nTbins=4, outfilename='',
