@@ -58,6 +58,7 @@ def mainloop(nexpers, nevents0, nevents1, endpoint0=12.0, endpoint1=8.0,
     data = pd.DataFrame(outdict(nexpers))
     # Loop over fake experiments
     for i in xrange(nexpers):
+        print 'Experiment number %s' % i
         # Create arrays of fake events
         dataE, dataT = throwexperiment(nevents, pdfsE, pdfsT)
         # Bin events
