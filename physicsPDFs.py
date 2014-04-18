@@ -3,6 +3,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import scipy.stats as st
 
+np.random.seed(19)
+
 # Both of the PDFs below have nearly identical functionality and could therefore 
 # inherit from an intermediate parent class. If you add any more PDFs that have 
 # the same forms as those here, you should consider adding a base class between

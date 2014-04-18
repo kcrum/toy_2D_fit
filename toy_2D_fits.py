@@ -1,5 +1,5 @@
 import physicsPDFs as pdfs
-import sys, datetime, subprocess
+import sys, time, subprocess
 import os.path
 import numpy as np
 import scipy as sp
@@ -84,7 +84,7 @@ def mainloop(nexpers, nevents0, nevents1, endpoint0=12.0, endpoint1=8.0,
         # Fill outputs into dataframe
         adddata(data, i, nfit1D, cov1D, chi1D, pval1D, nfit2D, cov2D, chi2D,
                 pval2D, nfit1Dml, fncmin1D, nfit2Dml, fncmin2D)
-
+        
     if outfilename: data.to_csv(outfilename)
     print 'Main loop finished!'
 
@@ -135,7 +135,9 @@ def mlfit1D(binnedE, binnedT, fracsE, fracsT, nevents, debug=False):
     fnc = lambda p: -np.sum(np.log(st.poisson.pmf(datavec, fracvec[0]*p[0]
                                                   + fracvec[1]*p[1])))
     pfit, fncmin, mingrad, invhess, ncalls, ngradcalls, wflag = \
-    sp.optimize.fmin_bfgs(fnc, nevents, full_output=1, disp=True)
+        sp.optimize.fmin_bfgs(fnc, nevents, full_output=1, disp=True)
+    #pfit, fncmin, direc, niter, ncalls, wflag = \
+    #    sp.optimize.fmin_powell(fnc, nevents, full_output=True, disp=True)
     if debug:
         print '---------------------- 1-D ML Fit ------------------------------'
         print 'Best fits: %s' % pfit
@@ -143,7 +145,6 @@ def mlfit1D(binnedE, binnedT, fracsE, fracsT, nevents, debug=False):
         print 'Num. fnc. calls: %s' % ncalls
         print '---------------------------------------------------------------'
     return pfit, fncmin
-
 
 #########################################################################
 # Find best fit 'isotope' rates when time and energy variables of fake data are
@@ -155,7 +156,9 @@ def mlfit2D(binneddata, fracs2D, nevents, debug=False):
 
     fnc = lambda p: -np.sum(np.log(st.poisson.pmf(datavec, predfunc(p))))
     pfit, fncmin, mingrad, invhess, ncalls, ngradcalls, wflag = \
-    sp.optimize.fmin_bfgs(fnc, nevents, full_output=1, disp=True)
+        sp.optimize.fmin_bfgs(fnc, nevents, full_output=1, disp=True)
+    #pfit, fncmin, direc, niter, ncalls, wflag = \
+    #    sp.optimize.fmin_powell(fnc, nevents, full_output=True, disp=True)
     if debug:
         print '---------------------- 2-D ML Fit ------------------------------'
         print 'Best fits: %s' % pfit
@@ -254,7 +257,6 @@ def sh(arg):
 # must be passed in like a list. This returns 'returncode'. You could also call:
 #     subprocess.Popen(arg, shell=True).wait()
 # but this can deadlock (see docs), and it doesn't return 'returncode'.
-
     
 #########################################################################
 #########################################################################
@@ -269,8 +271,10 @@ if __name__ == '__main__':
 
     outfilename = ''
     if len(sys.argv) == 5: outfilename = sys.argv[4]
-        
+    
+    starttime = time.clock()
     mainloop(nexperiments, nevents0, nevents1, outfilename=outfilename)
+    print 'elapsed time: %s' % (time.clock() - starttime)
 
     #mainloop(nexpers, nevents0, nevents1, endpoint0=12.0, endpoint1=8.0,
     #         lifetime0=260, lifetime1=170, nEbins=4, nTbins=4, outfilename='',
