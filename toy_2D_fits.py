@@ -33,6 +33,8 @@ import pandas as pd
 def mainloop(nexpers, nevents0, nevents1, endpoint0=12.0, endpoint1=8.0, 
              lifetime0=260, lifetime1=170, nEbins=4, nTbins=4, outfilename='',
              minevtsperbin=20, PearsonErrs=True, debug=False):
+    starttime = time.clock()
+
     nevents = (nevents0, nevents1)
     maxT = max(lifetime0, lifetime1)
     maxE = max(endpoint0, endpoint1)
@@ -86,7 +88,7 @@ def mainloop(nexpers, nevents0, nevents1, endpoint0=12.0, endpoint1=8.0,
                 pval2D, nfit1Dml, fncmin1D, nfit2Dml, fncmin2D)
         
     if outfilename: data.to_csv(outfilename)
-    print 'Main loop finished!'
+    print 'Main loop finished! Elapsed time: %s' % (time.clock() - starttime)
 
 #########################################################################
 # This fills a dataframe built from the output of 'outdict()' with a given fake
