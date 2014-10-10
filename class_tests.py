@@ -3,7 +3,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 import scipy.stats as st
 
-class FirstClass:
+# Always have classes inherit from object if they aren't already extending 
+# another class.
+class FirstClass(object):
     var1 = 7
     def __init__(self, val):
         self.var2 = val

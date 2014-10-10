@@ -244,10 +244,10 @@ def checkminbins(minevtsperbin, nevents, fracsE, fracsT, twoDfracs):
     min2Dbin = np.min(nevents[0]*twoDfracs[0] + nevents[1]*twoDfracs[1]) 
 
     if min1Dbin <= minevtsperbin:
-        print 'Warning: there is a bin in the 1-D fit with %s expected events. Either increase event rate or make binning coarser. Exiting.'
+        print 'Warning: there is a bin in the 1-D fit with %s expected events. Either increase event rate or make binning coarser. Exiting.' % min1Dbin
         sys.exit(1)
     if min2Dbin <= minevtsperbin:
-        print 'Warning: there is a bin in the 2-D fit with %s expected events. Either increase event rate or make binning coarser. Exiting.'
+        print 'Warning: there is a bin in the 2-D fit with %s expected events. Either increase event rate or make binning coarser. Exiting.' % min2Dbin
         sys.exit(1)
 
 #########################################################################

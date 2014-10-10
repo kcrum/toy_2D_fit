@@ -21,4 +21,4 @@ By making the following call from the command line:
 ```
 python toy_2D_fits.py 1000 1000 100 toyfits_1000exp_1000n0_100n1.txt
 ```
-you should be able to reproduce the output in toyfits_1000exp_1000n0_100n1.txt. This contains the fits of 1,000 fake experiments, each having 1,000 events pulled from isotope0 and 100 events pulled from isotope1.
+you should be able to reproduce the output in toyfits_1000exp_1000n0_100n1.txt. This contains the fits of 1,000 fake experiments, each having 1,000 events pulled from isotope0 and 100 events pulled from isotope1. N.B.: this will take an hour or two to run.
