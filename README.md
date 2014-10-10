@@ -22,3 +22,16 @@ By making the following call from the command line:
 python toy_2D_fits.py 1000 1000 100 toyfits_1000exp_1000n0_100n1.txt
 ```
 you should be able to reproduce the output in toyfits_1000exp_1000n0_100n1.txt. This contains the fits of 1,000 fake experiments, each having 1,000 events pulled from isotope0 and 100 events pulled from isotope1. N.B.: this will take an hour or two to run.
+
+## What to do with fake data
+
+You can read the fake data in toyfits_1000exp_1000n0_100n1.txt into a pandas data frame with the following call:
+```
+data = pandas.read_csv('toy_fits_1000exp_1000n0_100n1.txt')
+```
+
+One point this code is meant to illustrate is that the naive definition of degrees of freedom = # of bins - # of free parameters is not always correct. If you histogram the calculated p-values of the 2-D fits (calling `plt.hist(data.chi_2D)`), you'll correctly see a uniform distribution (what one expects in a well behaved chi^2 fit), as the p-values were calculated assuming 16 - 2 = 14 degrees of freedom. If you histogram the calculated p-values of the 1-D fits (calling `plt.hist(data.chi_1D)`), you'll see a non-uniform distribution, as the p-values were calculated assuming 8 - 2 = 6 degrees of freedom. 
+
+The reason the 1-D fits don't yield uniform p-values is due to the fact that the two 4-bin data vectors have the same total number of entries. This effectively removes one data bin, since if you know the contents of 7 out of the 8 bins, there is no freedom in the number of events of that 8th bin. This isn't the case in the 4 x 4 2-D fits, since each bin is truly a unique observation.
+
+You can also histogram the best fit values from the various fits for n0 (normalization of isotope 0) and n1 (normalization of isotope 1). Comparing the best fit values gives you an idea of, e.g., whether or not an estimator is biased.
