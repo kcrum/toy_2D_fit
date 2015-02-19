@@ -30,7 +30,7 @@ You can read the fake data in toyfits_1000exp_1000n0_100n1.txt into a pandas dat
 data = pandas.read_csv('toy_fits_1000exp_1000n0_100n1.txt')
 ```
 
-One point this code is meant to illustrate is that the naive definition of degrees of freedom = # of bins - # of free parameters is not always correct. If you histogram the calculated p-values of the 2-D fits (calling `plt.hist(data.chi_2D)`), you'll correctly see a uniform distribution (what one expects in a well behaved chi^2 fit), as the p-values were calculated assuming 16 - 2 = 14 degrees of freedom. If you histogram the calculated p-values of the 1-D fits (calling `plt.hist(data.chi_1D)`), you'll see a non-uniform distribution, as the p-values were calculated assuming 8 - 2 = 6 degrees of freedom. 
+One point this code is meant to illustrate is that the naive definition of degrees of freedom = # of bins - # of free parameters is not always correct. If you histogram the calculated p-values of the 2-D fits (calling `plt.hist(data.pval_2D)`), you'll correctly see a uniform distribution (what one expects in a well behaved chi^2 fit), as the p-values were calculated assuming 16 - 2 = 14 degrees of freedom. If you histogram the calculated p-values of the 1-D fits (calling `plt.hist(data.pval_1D)`), you'll see a non-uniform distribution, as the p-values were calculated assuming 8 - 2 = 6 degrees of freedom. 
 
 The reason the 1-D fits don't yield uniform p-values is due to the fact that the two 4-bin data vectors have the same total number of entries. This effectively removes one data bin, since if you know the contents of 7 out of the 8 bins, there is no freedom in the number of events of that 8th bin. This isn't the case in the 4 x 4 2-D fits, since each bin is truly a unique observation.
 
