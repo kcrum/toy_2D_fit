@@ -1,3 +1,4 @@
+import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import scipy.stats as st
@@ -14,9 +15,8 @@ def pval_correction(pval, bad_dof = 6, good_dof = 5):
 
 
 #########################################################################
-# Make histogram of p-vals for 1-D and 2-D chi^2 fits.
+# Make histogram of p-vals for 1-D chi^2 fits assuming two different d.o.f.s.
 def pval_distributions(filepath = 'toy_fits_1000exp_1000n0_100n1.txt'):
-
     data = pd.read_csv(filepath)
     # Correct 1-D pvals
     data['corrected_pval_1D'] = data.pval_1D.apply(pval_correction, args=(6,5))
@@ -24,7 +24,7 @@ def pval_distributions(filepath = 'toy_fits_1000exp_1000n0_100n1.txt'):
     plt.hist(data.pval_1D, alpha=0.9, hatch='o',
              label=r'n$_{d.o.f.}$ = 6')
     plt.hist(data.corrected_pval_1D, alpha=0.5, hatch='/',
-             label=r'n$_{d.o.f.}$ = 5 (corrected)')
+             label=r'n$_{d.o.f.}$ = 5')
     # Uncomment next two lines if you also want a hist of the 2D pvals.
     #plt.hist(data.pval_2D, alpha=0.5, hatch='/',
     #         label='2-dimensional (d.o.f. = 14)')
@@ -33,4 +33,24 @@ def pval_distributions(filepath = 'toy_fits_1000exp_1000n0_100n1.txt'):
     plt.xlabel(r"P-value evaluated from $\chi^2_{min}$", fontsize='x-large')
     plt.title('Histogram of P-values assuming 5 and 6 degrees of freedom')
 
+    plt.show()
+
+
+#########################################################################
+# Histogram min chi^2 values and also plot chi^2 curves.
+def chi2_distributions(filepath = 'toy_fits_1000exp_1000n0_100n1.txt',
+                       xmax = 25, bad_dof = 6, good_dof = 5):
+    xmax = int(np.ceil(xmax))
+    data = pd.read_csv(filepath)
+    nevts = len(data.chi_1D)
+
+    plt.hist(data.chi_1D, bins=xmax, range=(0,xmax))
+    xarr = np.linspace(0,xmax,200)
+    plt.plot(xarr, nevts*st.chi2.pdf(xarr,df=bad_dof), 'b-.',
+             label=(r'$\chi^2$ with %s d.o.f.' % bad_dof))
+    plt.plot(xarr, nevts*st.chi2.pdf(xarr,df=good_dof), 'g-',
+             label=(r'$\chi^2$ with %s d.o.f.' % good_dof))
+
+    plt.xlabel(r'$\chi^2_{min}$ Distribution', fontsize='x-large')
+    plt.legend(fontsize='x-large')
     plt.show()

@@ -154,8 +154,50 @@ class TruncatedExponentialPDF(st.rv_continuous):
         plt.show()
         
 
-#def Espec_data(endpoint, nevents):
+# This makes the deltaT plots posted on my blog.
+def nice_deltaT_plots(he_lifetime=170, li_lifetime=260):
+    # Make deltaT pdfs
+    maxT = max(np.ceil(he_lifetime), np.ceil(li_lifetime))
+    he_t = TruncatedExponentialPDF(he_lifetime,maxT)
+    li_t = TruncatedExponentialPDF(li_lifetime,maxT)
+
+    # Plot
+    tarr = np.linspace(0,maxT,min(int(maxT),500))
+    #fig, ax = plt.subplots()
+    plt.plot(tarr, he_t._pdf(tarr), 'r-', 
+             label=(r'$^8$He ($\tau$ = %s msec)' % he_lifetime))
+    plt.plot(tarr, li_t._pdf(tarr), 'b-', 
+             label=(r'$^9$Li ($\tau$ = %s msec)' % li_lifetime))
+    plt.xlabel(r"PDFs of $\Delta t$ after creation [msec]",fontsize='x-large')
     
+    axes = plt.gca() # Not sure why, but I needed to do this to set axes limits
+    axes.set_xlim((0,maxT))
+    axes.set_ylim((0,0.009))
+    plt.legend(fontsize='x-large')
+    plt.show()
+
+
+# This makes the energy spectrum plots posted on my blog.
+def nice_energy_plots(he_endpoint=8, li_endpoint=12):
+    # Make energy spectrum pdfs
+    maxE = max(np.ceil(he_endpoint), np.ceil(li_endpoint))
+    he_e = ParabolicPDF(he_endpoint)
+    li_e = ParabolicPDF(li_endpoint)
+
+    # Plot
+    earr = np.linspace(0,maxE,200)
+    #fig, ax = plt.subplots()
+    plt.plot(earr, he_e._pdf(earr), 'r-', label=(r'$^8$He E$_{\beta}$'))
+    plt.plot(earr, li_e._pdf(earr), 'b-', label=(r'$^9$Li E$_{\beta}$'))
+    plt.xlabel(r"PDFs of E$_{\beta}$ [MeV]",fontsize='x-large')
+    
+    axes = plt.gca() # Not sure why, but I needed to do this to set axes limits
+    axes.set_xlim((0,maxE))
+    axes.set_ylim((0,0.23))
+    plt.legend(fontsize='x-large')
+    plt.show()
+
+
 if __name__ == '__main__':
     if len(sys.argv) < 3:
         print 'This expects an endpoint for the parabolic energy spectrum, a maximum time for the exponential deltaT distribution, and a lifetime for the deltaT distribution (all > 0) . Exiting.'
