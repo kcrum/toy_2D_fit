@@ -5,10 +5,11 @@ import scipy.stats as st
 
 np.random.seed(19)
 
-# Both of the PDFs below have nearly identical functionality and could therefore 
-# inherit from an intermediate parent class. If you add any more PDFs that have 
-# the same forms as those here, you should consider adding a base class between
-# the final physics PDFs and their (grand)parent class "rv_continuous."
+# Both of the PDFs below have nearly identical functionality and could 
+# therefore inherit from an intermediate parent class. If you add any more PDFs
+# that have the same forms as those here, you should consider adding a base 
+# class between the final physics PDFs and their (grand)parent class 
+# "rv_continuous."
 
 # You can make your own PDF by inheriting from rv_continuous in scipy.stats.
 # Since the parabolic PDF I'm defining here isn't sensible as a PDF outside of
@@ -28,9 +29,9 @@ class ParabolicPDF(st.rv_continuous):
         self.normfactor = 6/(self.endpoint**3)
         # Make sure to call the base/parent class's ctor, too.
         super(ParabolicPDF, self).__init__(a=0, b=endpoint)
-    # Overload default _pdf that comes from rv_continuous. It seems like you must
-    # normalize the pdf yourself. (Test by removing normfactor, then trying to
-    # call sampleplot()).
+    # Overload default _pdf that comes from rv_continuous. It seems like you
+    # must normalize the pdf yourself. (Test by removing normfactor, then 
+    # trying to call sampleplot()).
     def _pdf(self,x):
         return -self.normfactor*x*(x - self.endpoint)
     # You can change the endpoint whenever you like.
@@ -54,7 +55,7 @@ class ParabolicPDF(st.rv_continuous):
         if sum(binfracvec) != 1.0: print 'Warning: sum of binfracvec = %s' % \
                 sum(binfracvec)
         return binfracvec
-    # This is for debugging. It will plot a histogram of 100 draws from the pdf.
+    # This is for debugging. It plots a histogram of 100 draws from the pdf.
     def sampleplot(self,ndraws=100,nbins=10):
         hist, bins = np.histogram(self.rvs(size=ndraws), bins=nbins,
                                   range=(0,self.endpoint))
@@ -66,14 +67,15 @@ class ParabolicPDF(st.rv_continuous):
         plt.plot(xvals, histarea*self._pdf(xvals))
         plt.xlabel("Energy [MeV]")
         plt.show()
-    # This is the same as sampleplot, except now we're using the PyPlot histogram
-    # interface instead of the numpy histogram passed to a bar graph.
+    # This is the same as sampleplot, except now we're using the PyPlot 
+    # histogram interface instead of the numpy histogram passed to a bar graph.
     def sampleplot2(self,ndraws=100,nbins=10):
         myhist = plt.hist(self.rvs(size=ndraws), bins=nbins, 
                         range=(0,self.endpoint), histtype='stepfilled', 
                         alpha=0.8, color='green')
-        maxval = max(myhist[0]) # myhist is an 2-d array with bin contents at [0]
-        # and bin edges at [1]. We find the maxval here to set the y-axis limit.
+        maxval = max(myhist[0]) # myhist is an 2-d array with bin contents at
+        # [0] and bin edges at [1]. We find the maxval here to set the y-axis 
+        # limit.
         plt.ylim([0,maxval + 0.05*maxval])
         histarea = float(ndraws)*(float(self.endpoint)/nbins)
         xvals = np.linspace(0,self.endpoint,100)
@@ -106,7 +108,7 @@ class TruncatedExponentialPDF(st.rv_continuous):
             sys.exit()
         self.maxT = float(maxT)
         self.lifetime = float(lifetime)
-        self.normfactor = 1./(self.lifetime*(1-np.exp(-self.maxT/self.lifetime)))
+        self.normfactor = 1./(self.lifetime*(1.-np.exp(-self.maxT/self.lifetime)))
         # Make sure to call the base/parent class's ctor, too.
         super(TruncatedExponentialPDF, self).__init__(a=0, b=maxT)
     # Overload default _pdf inherited from rv_continuous. 
@@ -168,7 +170,7 @@ if __name__ == '__main__':
         sys.exit(1)
     
     EnergyPDF = ParabolicPDF(endpoint)
-    DeltaTPDF = TruncatedExponentialPDF(maxT, lifetime)
+    DeltaTPDF = TruncatedExponentialPDF(lifetime, maxT)
 
     EnergyPDF.sampleplot3()
     DeltaTPDF.sampleplot()

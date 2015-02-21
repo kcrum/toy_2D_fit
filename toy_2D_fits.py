@@ -7,11 +7,12 @@ import matplotlib.pyplot as plt
 import scipy.stats as st
 import pandas as pd
 
+
 #
 # 1) Evaluate bin fraction vectors (for example see ../gaussPlusConstFit.py)
 #     1a?) How low can the population be in highest E, highest T bin (which is 
-#          the least populated) before Gaussian assumption breaks down? About 10
-#          events? If so, the Poisson CDF at x = 10 for lambda = 20 is ~1%.
+#          the least populated) before Gaussian assumption breaks down? About 
+#          10 events? If so, the Poisson CDF at x = 10 for lambda = 20 is ~1%.
 #     --> find minimum of numpy array by calling myarr.min()
 #     --> create 2-D frac. array by calling np.outer(parabfracs, expfracs)
 #
@@ -28,8 +29,8 @@ import pandas as pd
 
 #########################################################################
 # This runs the main fake fit loop. If you'd like to see the output of just one
-# fake fit (performing the 1-D and 2-D versions), you can call mainloop from the
-# terminal like this: t2d.mainloop(1,1000,100,debug=True)
+# fake fit (performing the 1-D and 2-D versions), you can call mainloop from 
+# the terminal like this: t2d.mainloop(1,1000,100,debug=True)
 def mainloop(nexpers, nevents0, nevents1, endpoint0=12.0, endpoint1=8.0, 
              lifetime0=260, lifetime1=170, nEbins=4, nTbins=4, outfilename='',
              minevtsperbin=20, PearsonErrs=True, debug=False):
@@ -66,17 +67,18 @@ def mainloop(nexpers, nevents0, nevents1, endpoint0=12.0, endpoint1=8.0,
         # Bin events
         histE = np.histogram(dataE, bins=nEbins, range=(0,maxE))
         histT = np.histogram(dataT, bins=nTbins, range=(0,maxT))
-        # Bin 2-D data and match pattern of fracs2D by having time vary by column
-        # and energy by row.
+        # Bin 2-D data and match pattern of fracs2D by having time vary by 
+        # column and energy by row.
         hist2D = np.histogram2d(dataE, dataT, bins=(nEbins,nTbins),
                                 range=((0., maxE), (0., maxT)))        
         # Chi-square min. fit of two 1-D histograms        
-        nfit1D, cov1D, chi1D, pval1D = fit1D(histE[0], histT[0], fracsE, fracsT,
-                                             nevents, PearsonErrs=PearsonErrs,
+        nfit1D, cov1D, chi1D, pval1D = fit1D(histE[0], histT[0], fracsE, 
+                                             fracsT, nevents, 
+                                             PearsonErrs=PearsonErrs,
                                              debug=debug)
         # Max. likelihood fit of two 1-D histograms
-        nfit1Dml, fncmin1D = mlfit1D(histE[0], histT[0], fracsE, fracsT, nevents,
-                                     debug=debug)
+        nfit1Dml, fncmin1D = mlfit1D(histE[0], histT[0], fracsE, fracsT, 
+                                     nevents, debug=debug)
         # Chi-square min. fit of one 2-d histogram
         nfit2D, cov2D, chi2D, pval2D = fit2D(hist2D[0],fracs2D, nevents,
                                              PearsonErrs=PearsonErrs,
@@ -113,8 +115,8 @@ def adddata(df, i, nfit1D, cov1D, chi1D, pval1D, nfit2D, cov2D, chi2D, pval2D,
     df['fncmin_1DML'][i], df['fncmin_2DML'][i] = fncmin1D, fncmin2D
 
 #########################################################################
-# This creates a dict for outputting the data. Each value in the dict is an array
-# of length 'nexps.'
+# This creates a dict for outputting the data. Each value in the dict is an 
+# array of length 'nexps.'
 def outdict(nexps):
     return {'n0_1D': np.zeros(nexps), 'n1_1D': np.zeros(nexps),
             'var00_1D': np.zeros(nexps), 'var01_1D': np.zeros(nexps),
@@ -141,7 +143,7 @@ def mlfit1D(binnedE, binnedT, fracsE, fracsT, nevents, debug=False):
     #pfit, fncmin, direc, niter, ncalls, wflag = \
     #    sp.optimize.fmin_powell(fnc, nevents, full_output=True, disp=True)
     if debug:
-        print '---------------------- 1-D ML Fit ------------------------------'
+        print '---------------------- 1-D ML Fit -----------------------------'
         print 'Best fits: %s' % pfit
         print 'Min. fnc. val: %s' % fncmin
         print 'Num. fnc. calls: %s' % ncalls
@@ -162,7 +164,7 @@ def mlfit2D(binneddata, fracs2D, nevents, debug=False):
     #pfit, fncmin, direc, niter, ncalls, wflag = \
     #    sp.optimize.fmin_powell(fnc, nevents, full_output=True, disp=True)
     if debug:
-        print '---------------------- 2-D ML Fit ------------------------------'
+        print '---------------------- 2-D ML Fit -----------------------------'
         print 'Best fits: %s' % pfit
         print 'Min. fnc. val: %s' % fncmin
         print 'Num. fnc. calls: %s' % ncalls
@@ -170,9 +172,9 @@ def mlfit2D(binneddata, fracs2D, nevents, debug=False):
     return pfit, fncmin
 
 #########################################################################
-# Find best fit 'isotope' rates by minimizing a chi-square (treats Poisson errors
-# as Gaussian) when time and energy variables of fake data are binned together in
-# 2-D histogram 
+# Find best fit 'isotope' rates by minimizing a chi-square (treats Poisson 
+# errors as Gaussian) when time and energy variables of fake data are binned 
+# together in 2-D histogram 
 def fit2D(binneddata, fracs2D, nevents, PearsonErrs=True, debug=False):
     datavec = binneddata.flatten()
     predfunc = lambda p: p[0]*fracs2D[0].flatten() + p[1]*fracs2D[1].flatten()
@@ -254,11 +256,29 @@ def checkminbins(minevtsperbin, nevents, fracsE, fracsT, twoDfracs):
 # This allows you to make easy calls to the terminal.
 def sh(arg):
     return subprocess.call(arg, shell=True) # This the more modern version of
-# os.system(...). The program waits until this finishes before proceding. If you
-# don't pass 'shell=True', all whitespace-separated parts of the shell command
-# must be passed in like a list. This returns 'returncode'. You could also call:
+# os.system(...). The program waits until this finishes before proceding. If 
+# you don't pass 'shell=True', all whitespace-separated parts of the shell 
+# command must be passed in like a list. This returns 'returncode'. You could 
+# also call:
 #     subprocess.Popen(arg, shell=True).wait()
 # but this can deadlock (see docs), and it doesn't return 'returncode'.
+
+
+#########################################################################
+# Make histogram of p-vals for 1-D and 2-D chi^2 fits.
+def pval_distributions(filepath = 'toy_fits_1000exp_1000n0_100n1.txt'):
+
+    data = pd.read_csv(filepath)
+    plt.hist(data.pval_1D, alpha=0.9, hatch='o', 
+             label='1-dimensional (d.o.f. = 6)')
+    plt.hist(data.pval_2D, alpha=0.5, hatch='/', 
+             label='2-dimensional (d.o.f. = 14)')
+
+    plt.legend(loc=2, fontsize='x-large')
+    plt.xlabel(r"P-value evaluated from $\chi^2_{min}$", fontsize='x-large')
+    plt.title('Histogram of P-values for many 1-D and 2-D fits')
+    
+    plt.show()
     
 #########################################################################
 #########################################################################
@@ -275,9 +295,6 @@ if __name__ == '__main__':
     if len(sys.argv) == 5: outfilename = sys.argv[4]
     
     starttime = time.clock()
-    mainloop(nexperiments, nevents0, nevents1, outfilename=outfilename)
+    mainloop(nexperiments, nevents0, nevents1, outfilename=outfilename, 
+             debug=True)
     print 'elapsed time: %s' % (time.clock() - starttime)
-
-    #mainloop(nexpers, nevents0, nevents1, endpoint0=12.0, endpoint1=8.0,
-    #         lifetime0=260, lifetime1=170, nEbins=4, nTbins=4, outfilename='',
-    #         minevtsperbin=20, PearsonErrs=True, debug=False):
