@@ -4,6 +4,8 @@ This contains code that runs fits to fake data where each event has an energy an
 
 I want to test whether simultaneously fitting both of the 1-D distributions is unbiased; I also want to observe the behavior of the chi^2 for many fake fits. I will also fit the (presumably correct) 2-D distribution, checking again for unbiased estimators and proper chi^2 behavior. The relevant source code is contained in physicsPDFs.py and toy_2D_fits.py. You can ignore the file called class_tests.py.
 
+Also I wrote [a blog post](http://kcrum.github.io/Chi2_dof/) which uses this code.
+
 ## Running fake fits
 
 The fake data in the fits done here are pulled from energy and time distributions, much like if one were observing Li-9 or He-8 decays. The energy spectrum form is specified in physicsPDFs.py by the "ParabolicPDF" class, and it is a parabola of the form ~x*(x-endpoint), where the user specifies the endpoint. The time spectrum is an exponential from the "TruncatedExponentialPDF" class with user-specified lifetime, as well as a user-specified maximum time. We generate fake data pulling from energy and time distributions for two 'isotopes,' each with its own spectral endpoint and lifetime. 
